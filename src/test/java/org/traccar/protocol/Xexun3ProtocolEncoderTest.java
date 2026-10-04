@@ -16,9 +16,9 @@ public class Xexun3ProtocolEncoderTest extends ProtocolTest {
         command = new Command();
         command.setDeviceId(1);
         command.setType(Command.TYPE_CUSTOM);
-        command.set(Command.KEY_DATA, "tk=2,60,0,60,1");
+        command.set(Command.KEY_DATA, "tk=2,20,0,600,1");
         verifyEncode(channel, command,
-                binary("FC00190321010123456789012345746B3D322C36302C302C36302C31367ACF"));
+                binary("FC001A0321010123456789012345746B3D322C32302C302C3630302C31E4FFCF"));
 
         command = new Command();
         command.setDeviceId(1);
