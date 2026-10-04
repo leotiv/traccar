@@ -18,14 +18,19 @@ package org.traccar.protocol;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.traccar.BaseProtocolEncoder;
+import org.traccar.Protocol;
 import org.traccar.helper.Checksum;
 import org.traccar.helper.DataConverter;
 import org.traccar.model.Command;
-import org.traccar.Protocol;
 
 import java.nio.charset.StandardCharsets;
 
 public class Xexun3ProtocolEncoder extends BaseProtocolEncoder {
+
+    public static final String KEY_PRIORITY = "priority";
+    public static final String KEY_DELAY = "delay";
+    public static final String KEY_STATIC_INTERVAL = "staticInterval";
+    public static final String KEY_KEEPALIVE = "keepalive";
 
     public Xexun3ProtocolEncoder(Protocol protocol) {
         super(protocol);
@@ -61,8 +66,15 @@ public class Xexun3ProtocolEncoder extends BaseProtocolEncoder {
 
         return switch (command.getType()) {
             case Command.TYPE_CUSTOM -> encodeContent(uniqueId, command.getString(Command.KEY_DATA));
-            case Command.TYPE_POSITION_PERIODIC -> encodeContent(
-                    uniqueId, String.format("tk=2,%1$d,0,%1$d,1", command.getInteger(Command.KEY_FREQUENCY)));
+            case Command.TYPE_POSITION_PERIODIC -> {
+                int frequency = command.getInteger(Command.KEY_FREQUENCY);
+                yield encodeContent(uniqueId, String.format("tk=%d,%d,%d,%d,%d",
+                        command.getInteger(KEY_PRIORITY, 2),
+                        frequency,
+                        command.getInteger(KEY_DELAY, 0),
+                        command.getInteger(KEY_STATIC_INTERVAL, frequency),
+                        command.getInteger(KEY_KEEPALIVE, 1)));
+            }
             case Command.TYPE_POWER_OFF -> encodeContent(uniqueId, "of=1");
             case Command.TYPE_REBOOT_DEVICE -> encodeContent(uniqueId, "rt=1");
             default -> null;
