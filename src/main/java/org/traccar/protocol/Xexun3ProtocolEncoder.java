@@ -62,9 +62,9 @@ public class Xexun3ProtocolEncoder extends BaseProtocolEncoder {
         return switch (command.getType()) {
             case Command.TYPE_CUSTOM -> encodeContent(uniqueId, command.getString(Command.KEY_DATA));
             case Command.TYPE_POSITION_PERIODIC -> encodeContent(
-                    uniqueId, String.format("tracking_send=%1$d,%1$d", command.getInteger(Command.KEY_FREQUENCY)));
+                    uniqueId, String.format("tk=2,%1$d,0,%1$d,1", command.getInteger(Command.KEY_FREQUENCY)));
             case Command.TYPE_POWER_OFF -> encodeContent(uniqueId, "of=1");
-            case Command.TYPE_REBOOT_DEVICE -> encodeContent(uniqueId, "reset");
+            case Command.TYPE_REBOOT_DEVICE -> encodeContent(uniqueId, "rt=1");
             default -> null;
         };
     }
