@@ -68,4 +68,5 @@ public class Xexun3ProtocolEncoder extends BaseProtocolEncoder {
             default -> null;
         };
     }
+
 }

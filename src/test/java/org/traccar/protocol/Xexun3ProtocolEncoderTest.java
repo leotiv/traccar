@@ -33,4 +33,5 @@ public class Xexun3ProtocolEncoderTest extends ProtocolTest {
         verifyEncode(channel, command,
                 binary("FC001B0321010123456789012345746B3D322C3135302C302C3135302C31B810CF"));
     }
+
 }
