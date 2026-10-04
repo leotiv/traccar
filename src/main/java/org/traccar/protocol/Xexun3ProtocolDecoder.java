@@ -47,14 +47,14 @@ public class Xexun3ProtocolDecoder extends BaseProtocolDecoder {
             int bodyLength = includeTimestamp ? 5 : 1;
             ByteBuf response = Unpooled.buffer();
             response.writeByte(0xFC);
-            response.writeShort(11 + bodyLength); // length = 11 (header) + body
+            response.writeShort(11 + bodyLength); // length
             response.writeByte(0x03); // version
             response.writeByte(type);
             response.writeByte(index);
             response.writeBytes(imei, imei.readerIndex(), 8);
-            response.writeByte(0); // result (0x00 = success)
+            response.writeByte(0); // result
             if (includeTimestamp) {
-                response.writeInt((int) (System.currentTimeMillis() / 1000)); // UTC timestamp
+                response.writeInt((int) (System.currentTimeMillis() / 1000));
             }
             response.writeShort(Checksum.crc16(
                     Checksum.CRC16_CCITT_FALSE, response.nioBuffer(3, 11 + bodyLength)));
@@ -65,33 +65,24 @@ public class Xexun3ProtocolDecoder extends BaseProtocolDecoder {
 
     private boolean shouldIncludeTimestamp(ByteBuf buf, int bodyStart, int bodyEnd) {
         int pos = bodyStart;
+        boolean oldSpec = false;
         while (pos + 2 <= bodyEnd) {
             int subType = buf.getUnsignedByte(pos);
             int subLength = buf.getUnsignedByte(pos + 1);
             if (subType == 0x6E) {
-                return true; // new spec only
-            } else if (subType == 0x6B) {
-                if (subLength == 0x01) {
-                    return true; // new spec
-                } else if (subLength == 0x05) {
-                    return false; // old spec
-                }
-            } else if (subType == 0x64) {
-                if (subLength == 0x22) {
-                    return true; // new spec
-                } else if (subLength == 0x21) {
-                    return false; // old spec
-                }
-            } else if (subType == 0x6A) {
-                if (subLength == 0x18) {
-                    return true; // new spec
-                } else if (subLength == 0x10) {
-                    return false; // old spec
-                }
+                return true;
+            }
+            if (!oldSpec) {
+                oldSpec = switch (subType) {
+                    case 0x6B -> subLength == 0x05;
+                    case 0x64 -> subLength == 0x21;
+                    case 0x6A -> subLength == 0x10;
+                    default -> false;
+                };
             }
             pos += 2 + subLength;
         }
-        return true; // default: new spec
+        return !oldSpec;
     }
 
     private String decodeAlarm(int value) {
@@ -130,9 +121,10 @@ public class Xexun3ProtocolDecoder extends BaseProtocolDecoder {
             return null;
         }
 
+        int bodyStart = buf.readerIndex();
+        int bodyEnd = bodyStart + length - 11;
+
         if (type != MSG_COMMAND) {
-            int bodyStart = buf.readerIndex();
-            int bodyEnd = bodyStart + length - 11;
             sendResponse(channel, type, index, imei,
                     shouldIncludeTimestamp(buf, bodyStart, bodyEnd));
         }
@@ -147,7 +139,6 @@ public class Xexun3ProtocolDecoder extends BaseProtocolDecoder {
         Network network = new Network();
         boolean hasLocation = false;
 
-        int bodyEnd = buf.readerIndex() + length - 11;
         while (buf.readerIndex() < bodyEnd) {
             int subType = buf.readUnsignedByte();
             int subLength = buf.readUnsignedByte();
