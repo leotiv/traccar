@@ -102,6 +102,9 @@ public class Xexun3ProtocolDecoder extends BaseProtocolDecoder {
         int bodyEnd = buf.readerIndex() + length - 11;
 
         if (type != MSG_DATA) {
+            if (type != MSG_COMMAND) {
+                sendResponse(channel, type, index, imei, false);
+            }
             return null;
         }
 
