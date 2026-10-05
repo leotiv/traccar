@@ -65,24 +65,20 @@ public class Xexun3ProtocolDecoder extends BaseProtocolDecoder {
 
     private boolean shouldIncludeTimestamp(ByteBuf buf, int bodyEnd) {
         int pos = buf.readerIndex();
-        boolean newSpec = false;
         while (pos + 2 <= bodyEnd) {
             int subType = buf.getUnsignedByte(pos);
             int subLength = buf.getUnsignedByte(pos + 1);
             if (subType == 0x6E) {
                 return true;
             }
-            if (!newSpec) {
-                newSpec = switch (subType) {
-                    case 0x6B -> subLength != 0x05;
-                    case 0x64 -> subLength != 0x21;
-                    case 0x6A -> subLength != 0x10;
-                    default -> false;
-                };
+            switch (subType) {
+                case 0x6B -> { if (subLength != 0x05) return true; }
+                case 0x64 -> { if (subLength != 0x21) return true; }
+                case 0x6A -> { if (subLength != 0x10) return true; }
             }
             pos += 2 + subLength;
         }
-        return newSpec;
+        return false;
     }
 
     private String decodeAlarm(int value) {
