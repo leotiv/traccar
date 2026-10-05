@@ -63,8 +63,8 @@ public class Xexun3ProtocolDecoder extends BaseProtocolDecoder {
         }
     }
 
-    private boolean shouldIncludeTimestamp(ByteBuf buf, int bodyStart, int bodyEnd) {
-        int pos = bodyStart;
+    private boolean shouldIncludeTimestamp(ByteBuf buf, int bodyEnd) {
+        int pos = buf.readerIndex();
         boolean oldSpec = false;
         while (pos + 2 <= bodyEnd) {
             int subType = buf.getUnsignedByte(pos);
@@ -121,12 +121,11 @@ public class Xexun3ProtocolDecoder extends BaseProtocolDecoder {
             return null;
         }
 
-        int bodyStart = buf.readerIndex();
-        int bodyEnd = bodyStart + length - 11;
+        int bodyEnd = buf.readerIndex() + length - 11;
 
         if (type != MSG_COMMAND) {
             sendResponse(channel, type, index, imei,
-                    shouldIncludeTimestamp(buf, bodyStart, bodyEnd));
+                    shouldIncludeTimestamp(buf, bodyEnd));
         }
 
         if (type != MSG_DATA) {
