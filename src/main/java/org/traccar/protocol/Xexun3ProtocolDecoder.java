@@ -126,6 +126,7 @@ public class Xexun3ProtocolDecoder extends BaseProtocolDecoder {
                     || subType == 0x64 && subLength != 0x21
                     || subType == 0x6A && subLength != 0x10) {
                 newFormat = true;
+                deviceSession.set("newFormat", true);
             }
 
             switch (subType) {
