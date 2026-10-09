@@ -43,7 +43,7 @@ public class Xexun3ProtocolEncoder extends BaseProtocolEncoder {
 
         buf.writeByte(0xFC); // start
         int lengthIndex = buf.writerIndex();
-        buf.writeShort(0); // length placeholder
+        buf.writeShort(0); // length placeholder, back-patched after body is written
         buf.writeByte(0x03); // version
         buf.writeByte(Xexun3ProtocolDecoder.MSG_COMMAND); // type
         buf.writeByte(1); // index
