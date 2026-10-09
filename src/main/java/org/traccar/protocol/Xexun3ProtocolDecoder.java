@@ -42,43 +42,22 @@ public class Xexun3ProtocolDecoder extends BaseProtocolDecoder {
     public static final int MSG_DATA = 0x20;
     public static final int MSG_COMMAND = 0x21;
 
-    private void sendResponse(Channel channel, int type, int index, ByteBuf imei, boolean includeTimestamp) {
+    private void sendResponse(Channel channel, int type, int index, ByteBuf imei) {
         if (channel != null) {
-            int bodyLength = includeTimestamp ? 5 : 1;
             ByteBuf response = Unpooled.buffer();
             response.writeByte(0xFC);
-            response.writeShort(11 + bodyLength); // length
+            response.writeShort(16); // length
             response.writeByte(0x03); // version
             response.writeByte(type);
             response.writeByte(index);
             response.writeBytes(imei, imei.readerIndex(), 8);
             response.writeByte(0); // result
-            if (includeTimestamp) {
-                response.writeInt((int) (System.currentTimeMillis() / 1000));
-            }
+            response.writeInt((int) (System.currentTimeMillis() / 1000));
             response.writeShort(Checksum.crc16(
-                    Checksum.CRC16_CCITT_FALSE, response.nioBuffer(3, 11 + bodyLength)));
+                    Checksum.CRC16_CCITT_FALSE, response.nioBuffer(3, 16)));
             response.writeByte(0xCF);
             channel.writeAndFlush(new NetworkMessage(response, channel.remoteAddress()));
         }
-    }
-
-    private boolean shouldIncludeTimestamp(ByteBuf buf, int bodyEnd) {
-        int pos = buf.readerIndex();
-        while (pos + 2 <= bodyEnd) {
-            int subType = buf.getUnsignedByte(pos);
-            int subLength = buf.getUnsignedByte(pos + 1);
-            if (subType == 0x6E) {
-                return true;
-            }
-            switch (subType) {
-                case 0x6B -> { if (subLength != 0x05) return true; }
-                case 0x64 -> { if (subLength != 0x21) return true; }
-                case 0x6A -> { if (subLength != 0x10) return true; }
-            }
-            pos += 2 + subLength;
-        }
-        return false;
     }
 
     private String decodeAlarm(int value) {
@@ -117,11 +96,8 @@ public class Xexun3ProtocolDecoder extends BaseProtocolDecoder {
             return null;
         }
 
-        int bodyEnd = buf.readerIndex() + length - 11;
-
         if (type != MSG_COMMAND) {
-            sendResponse(channel, type, index, imei,
-                    shouldIncludeTimestamp(buf, bodyEnd));
+            sendResponse(channel, type, index, imei);
         }
 
         if (type != MSG_DATA) {
@@ -134,6 +110,7 @@ public class Xexun3ProtocolDecoder extends BaseProtocolDecoder {
         Network network = new Network();
         boolean hasLocation = false;
 
+        int bodyEnd = buf.readerIndex() + length - 11;
         while (buf.readerIndex() < bodyEnd) {
             int subType = buf.readUnsignedByte();
             int subLength = buf.readUnsignedByte();
@@ -223,9 +200,11 @@ public class Xexun3ProtocolDecoder extends BaseProtocolDecoder {
                     if (fuel != 0xFF) {
                         position.set(Position.KEY_FUEL_LEVEL, fuel);
                     }
-                    long deviceTime = buf.readUnsignedInt();
-                    if (deviceTime != 0xFFFFFFFFL) {
-                        position.setDeviceTime(new Date(deviceTime * 1000));
+                    if (subEnd - buf.readerIndex() >= 4) {
+                        long deviceTime = buf.readUnsignedInt();
+                        if (deviceTime != 0xFFFFFFFFL) {
+                            position.setDeviceTime(new Date(deviceTime * 1000));
+                        }
                     }
                 }
                 default -> {}
