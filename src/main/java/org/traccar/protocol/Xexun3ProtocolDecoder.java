@@ -108,9 +108,7 @@ public class Xexun3ProtocolDecoder extends BaseProtocolDecoder {
             result.set(Position.KEY_RESULT, buf.readCharSequence(
                     length - 11, StandardCharsets.UTF_8).toString().replace("\0", "").trim());
             return result;
-        }
-
-        if (type != MSG_DATA) {
+        } else if (type != MSG_DATA) {
             return null;
         }
 
