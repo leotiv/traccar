@@ -1,0 +1,37 @@
+# Multi-stage Dockerfile that builds traccar from source (server + traccar-web submodule)
+
+# Stage 1: Build the server with Gradle
+FROM eclipse-temurin:21-jdk AS server-build
+WORKDIR /build
+COPY . .
+RUN ./gradlew assemble --no-daemon --stacktrace
+
+# Stage 2: Build the web frontend with npm
+FROM node:22-slim AS web-build
+WORKDIR /web
+COPY traccar-web/ .
+RUN npm ci && npm run build
+
+# Stage 3: Package server + web into /traccar
+FROM alpine AS package
+RUN mkdir -p /traccar/conf /traccar/lib /traccar/schema /traccar/templates/translations /traccar/web
+COPY --from=server-build /build/target/tracker-server.jar /traccar/
+COPY --from=server-build /build/target/lib/ /traccar/lib/
+COPY --from=server-build /build/schema/ /traccar/schema/
+COPY --from=server-build /build/templates/ /traccar/templates/
+COPY --from=server-build /build/setup/traccar.xml /traccar/conf/
+COPY --from=web-build /web/build/ /traccar/web/
+COPY --from=web-build /web/src/resources/l10n/ /traccar/templates/translations/
+
+# Stage 4: Create a minimal JRE with jlink
+FROM eclipse-temurin:25 AS jdk
+RUN jlink --add-modules java.se,jdk.charsets,jdk.crypto.ec,jdk.net,jdk.unsupported \
+    --strip-debug --no-header-files --no-man-pages --compress=2 --output /jre
+
+# Stage 5: Final runtime image
+FROM debian:stable-slim
+COPY --from=package /traccar /opt/traccar
+COPY --from=jdk /jre /opt/traccar/jre
+WORKDIR /opt/traccar
+ENTRYPOINT ["/opt/traccar/jre/bin/java", "-XX:+ExitOnOutOfMemoryError"]
+CMD ["-jar", "tracker-server.jar", "conf/traccar.xml"]
