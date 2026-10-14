@@ -487,7 +487,8 @@ public class Jt808ProtocolDecoder extends BaseProtocolDecoder {
 
             return decodeLocation2(deviceSession, buf, type);
 
-        } else if (type == MSG_LOCATION_BATCH_2 && bodyLength == 7) {
+        } else if (type == MSG_LOCATION_BATCH_2 && bodyLength == 7
+                && buf.getUnsignedByte(buf.readerIndex()) <= 100) {
 
             sendGeneralResponse(channel, remoteAddress, id, type, index);
 
@@ -1645,6 +1646,9 @@ public class Jt808ProtocolDecoder extends BaseProtocolDecoder {
 
         while (buf.readableBytes() > 2) {
             int length = type == MSG_LOCATION_BATCH_2 ? buf.readUnsignedByte() : buf.readUnsignedShort();
+            if (length > buf.readableBytes() - 2) {
+                break;
+            }
             ByteBuf fragment = buf.readSlice(length);
             Position position = decodeLocation(deviceSession, fragment);
             if (locationType > 0) {
