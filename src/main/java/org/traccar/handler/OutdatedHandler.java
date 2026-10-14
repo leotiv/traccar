@@ -20,7 +20,6 @@ import org.traccar.session.cache.CacheManager;
 
 import jakarta.inject.Inject;
 import java.time.Instant;
-import java.util.Date;
 
 public class OutdatedHandler extends BasePositionHandler {
 
@@ -47,7 +46,8 @@ public class OutdatedHandler extends BasePositionHandler {
                 position.setCourse(last.getCourse());
                 position.setAccuracy(last.getAccuracy());
             } else {
-                position.setFixTime(new Date(GPS_EPOCH));
+                callback.processed(true);
+                return;
             }
             if (position.getDeviceTime() == null) {
                 position.setDeviceTime(position.getServerTime());
